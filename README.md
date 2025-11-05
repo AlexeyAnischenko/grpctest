@@ -8,6 +8,7 @@ It allows you to:
 - Inspect defined **packages**, **services**, and **methods**.
 - Experiment with gRPC request structures.
 - Export the current edited `.proto` back to a file.
+- Send the request to specified server and get the response / stream of responses back (you need gRPC server for that)
 
 All logic is performed **entirely in the browser**, using pure HTML, CSS, and JavaScript.
 

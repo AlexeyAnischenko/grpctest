@@ -1,0 +1,385 @@
+﻿C:\Down\grpc-test.html<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>gRPC-Test</title>
+  <script src="https://cdn.jsdelivr.net/npm/protobufjs@7.2.5/dist/protobuf.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: #f5f5f5;
+      color: #333;
+      line-height: 1.6;
+    }
+    .container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+    header { background: white; padding: 24px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 24px; }
+    h1 { font-size: 28px; font-weight: 600; color: #1a1a1a; margin-bottom: 8px; }
+    .subtitle { color: #666; font-size: 14px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+    .panel { background: white; border-radius: 8px; padding: 24px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .panel-title { font-size: 18px; font-weight: 600; margin-bottom: 16px; color: #1a1a1a; }
+    .form-group { margin-bottom: 16px; }
+    label { display: block; font-weight: 500; margin-bottom: 6px; font-size: 14px; color: #444; }
+    input[type="text"], input[type="number"], select, textarea {
+      width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px;
+      font-size: 14px; font-family: inherit; transition: border-color 0.2s;
+    }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: #2563eb; }
+    textarea {
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+      resize: vertical; min-height: 200px;
+    }
+    button {
+      background: #2563eb; color: white; border: none;
+      padding: 10px 20px; border-radius: 6px;
+      font-size: 14px; font-weight: 500;
+      cursor: pointer; transition: background 0.2s;
+    }
+    button:hover { background: #1d4ed8; }
+    button:disabled { background: #94a3b8; cursor: not-allowed; }
+    .button-group { display: flex; gap: 12px; margin-top: 16px; }
+    .secondary-btn { background: #475569; }
+    .secondary-btn:hover { background: #475577; }
+    .danger-btn { background: #dc2626; }
+    .danger-btn:hover { background: #b91c1c; }
+    .response-area {
+      background: #1e1e1e; color: #d4d4d4; padding: 16px; border-radius: 6px;
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+      font-size: 13px; max-height: 500px; overflow-y: auto;
+      white-space: pre-wrap; word-break: break-word;
+    }
+    .status { padding: 8px 12px; border-radius: 6px; font-size: 13px; margin-top: 12px; }
+    .status-success { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+    .status-error { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+    .status-info { background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
+    .field-builder {
+      background: #f8fafc; padding: 16px; border-radius: 6px;
+      border: 1px solid #e2e8f0; margin-top: 12px;
+    }
+    .field-item { display: grid; grid-template-columns: 150px 1fr; gap: 8px; align-items: start; margin-bottom: 8px; }
+    .field-name { font-weight: 500; padding: 10px 0; font-size: 13px; }
+    .stream-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .full-width { grid-column: 1 / -1; }
+    .hidden { display: none; }
+    .file-input-wrapper { position: relative; display: inline-block; }
+    .file-input-wrapper input[type="file"] { position: absolute; left: -9999px; }
+    .file-input-label {
+      display: inline-block; padding: 10px 20px; background: #64748b;
+      color: white; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;
+      transition: background 0.2s;
+    }
+    .file-input-label:hover { background: #475569; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>gRPC-Test</h1>
+      <p class="subtitle">Test gRPC services with proto file import, field editing, and streaming support</p>
+    </header>
+
+    <div class="grid">
+      <div class="panel">
+        <h2 class="panel-title">Proto Definition</h2>
+
+        <div class="form-group">
+          <div class="file-input-wrapper">
+            <input type="file" id="protoFile" accept=".proto">
+            <label for="protoFile" class="file-input-label">Choose .Proto File</label>
+            <span id="fileName" style="margin-left: 12px; font-size: 14px; color: #666;"></span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Edit Proto Definition</label>
+          <textarea id="protoContent">syntax = "proto3";
+
+package example;
+
+service Greeter {
+  rpc SayHello (HelloRequest) returns (HelloReply) {}
+  rpc LoremIpsum (Empty) returns (stream Lorem) {}
+}
+
+message HelloRequest {
+  string name = 1;
+  int32 age = 2;
+}
+
+message HelloReply {
+  string message = 1;
+  int32 timestamp = 2;
+}
+
+message Empty {}
+
+message Lorem {
+  string text = 1;
+  int32 index = 2;
+}</textarea>
+        </div>
+
+        <div class="button-group">
+          <button id="parseProto">Parse Proto</button>
+          <button id="exportProto" class="secondary-btn">Export Proto</button>
+        </div>
+
+        <div id="parseStatus"></div>
+      </div>
+
+      <div class="panel">
+        <h2 class="panel-title">Service Configuration</h2>
+
+        <div class="form-group">
+          <label>Server URL</label>
+          <input type="text" id="serverUrl" value="http://localhost:8080">
+        </div>
+
+        <div class="form-group">
+          <label>Service</label>
+          <select id="serviceSelect"><option value="">-- Select Service --</option></select>
+        </div>
+
+        <div class="form-group">
+          <label>Method</label>
+          <select id="methodSelect"><option value="">-- Select Method --</option></select>
+        </div>
+
+        <div id="methodInfo" class="status status-info hidden"></div>
+
+        <div class="form-group">
+          <label>Request Parameters</label>
+          <div id="fieldBuilder" class="field-builder">
+            <p style="color:#64748b;font-size:13px;">Parse proto and select a method to see fields</p>
+          </div>
+        </div>
+
+        <div id="streamControls" class="hidden">
+          <div class="form-group">
+            <label>Stream Settings</label>
+            <div class="stream-controls">
+              <div><label>Timeout (s)</label><input type="number" id="streamTimeout" value="30" min="1"></div>
+              <div><label>Max Responses</label><input type="number" id="maxResponses" value="10" min="1"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="button-group">
+          <button id="sendRequest">Send Request</button>
+          <button id="stopStream" class="danger-btn hidden">Stop Stream</button>
+        </div>
+
+        <div id="requestStatus"></div>
+      </div>
+    </div>
+
+    <div class="panel full-width">
+      <h2 class="panel-title">Response</h2>
+      <div id="responseArea" class="response-area">No response yet.</div>
+    </div>
+  </div>
+
+  <script>
+    let root = null, currentService = null, currentMethod = null;
+    let isStreaming = false, streamAbortController = null, responseCount = 0;
+
+    const $ = id => document.getElementById(id);
+    const protoFileInput = $('protoFile'), protoContent = $('protoContent');
+    const parseProtoBtn = $('parseProto'), exportProtoBtn = $('exportProto');
+    const parseStatus = $('parseStatus'), serviceSelect = $('serviceSelect');
+    const methodSelect = $('methodSelect'), methodInfo = $('methodInfo');
+    const fieldBuilder = $('fieldBuilder'), streamControls = $('streamControls');
+    const streamTimeout = $('streamTimeout'), maxResponses = $('maxResponses');
+    const sendRequestBtn = $('sendRequest'), stopStreamBtn = $('stopStream');
+    const requestStatus = $('requestStatus'), responseArea = $('responseArea'), fileName = $('fileName');
+    const serverUrlInput = $('serverUrl');
+
+    protoFileInput.addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      fileName.textContent = file.name;
+      const reader = new FileReader();
+      reader.onload = ev => {
+        protoContent.value = ev.target.result;
+        showStatus(parseStatus, `Loaded ${file.name}`, 'info');
+      };
+      reader.readAsText(file);
+    });
+
+    parseProtoBtn.addEventListener('click', () => {
+      try {
+        const text = protoContent.value.trim();
+        if (!text) return showStatus(parseStatus, 'No proto content provided', 'error');
+        const parsed = protobuf.parse(text);
+        root = parsed.root;
+
+        const services = [];
+        function walk(obj, path = '') {
+          if (!obj) return;
+          if (obj instanceof protobuf.Service) {
+            obj._path = path ? `${path}.${obj.name}` : obj.name;
+            services.push(obj);
+          }
+          if (obj.nested)
+            for (const [k, v] of Object.entries(obj.nested))
+              walk(v, path ? `${path}.${k}` : k);
+        }
+        walk(root);
+        window.__protoServices = services;
+
+        serviceSelect.innerHTML = '<option value="">-- Select Service --</option>';
+        methodSelect.innerHTML = '<option value="">-- Select Method --</option>';
+
+        if (services.length === 0) {
+          showStatus(parseStatus, '❌ No services found', 'error');
+          console.log('Root:', root);
+          return;
+        }
+        services.forEach(s => {
+          const o = document.createElement('option');
+          o.value = s._path;
+          o.textContent = s._path;
+          serviceSelect.appendChild(o);
+        });
+        showStatus(parseStatus, `✅ Found ${services.length} service(s).`, 'success');
+      } catch (err) {
+        showStatus(parseStatus, `Parse error: ${err.message}`, 'error');
+        console.error(err);
+      }
+    });
+
+exportProtoBtn.addEventListener('click', () => {
+  const text = protoContent.value.trim();
+  if (!text) {
+    showStatus(parseStatus, '❌ No proto content to export', 'error');
+    return;
+  }
+
+  const blob = new Blob([text], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'exported.proto';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+
+  showStatus(parseStatus, '✅ Proto exported successfully.', 'success');
+});
+
+    serviceSelect.addEventListener('change', e => {
+      const name = e.target.value;
+      methodSelect.innerHTML = '<option value="">-- Select Method --</option>';
+      fieldBuilder.innerHTML = '<p style="color:#64748b;font-size:13px;">Select a method</p>';
+      methodInfo.classList.add('hidden'); streamControls.classList.add('hidden');
+      if (!name || !window.__protoServices) return;
+      const svc = window.__protoServices.find(s => s._path === name);
+      if (!svc) return showStatus(parseStatus, `❌ Service not found: ${name}`, 'error');
+      currentService = svc;
+      const methods = Object.keys(svc.methods || {});
+      if (methods.length === 0) return showStatus(parseStatus, `❌ No RPCs in ${svc.name}`, 'error');
+      methods.forEach(m => {
+        const o = document.createElement('option'); o.value = m; o.textContent = m; methodSelect.appendChild(o);
+      });
+      showStatus(parseStatus, `✅ Loaded ${methods.length} RPC(s).`, 'success');
+    });
+
+    methodSelect.addEventListener('change', e => {
+      const m = e.target.value;
+      if (!m || !currentService) return;
+      currentMethod = currentService.methods[m];
+      const reqType = root.lookupType(currentMethod.requestType);
+      const isStream = currentMethod.responseStream;
+      methodInfo.textContent = isStream ? `📡 Streaming: ${m}` : `⚡ Unary: ${m}`;
+      methodInfo.classList.remove('hidden');
+      streamControls.classList.toggle('hidden', !isStream);
+      buildFieldInputs(reqType);
+    });
+
+    function buildFieldInputs(type) {
+      fieldBuilder.innerHTML = '';
+      const fields = type.fields;
+      if (Object.keys(fields).length === 0)
+        return fieldBuilder.innerHTML = '<p style="color:#64748b;font-size:13px;">No fields</p>';
+      for (const f of Object.values(fields)) {
+        const row = document.createElement('div');
+        row.className = 'field-item';
+        const name = document.createElement('div');
+        name.className = 'field-name'; name.textContent = f.name;
+        const input = document.createElement('input');
+        input.dataset.fieldName = f.name; input.dataset.fieldType = f.type;
+        input.placeholder = f.type;
+        if (['int32','int64','uint32','uint64'].includes(f.type)) input.type='number';
+        else if (['float','double'].includes(f.type)) {input.type='number';input.step='any';}
+        else if (f.type==='bool') input.type='checkbox';
+        else input.type='text';
+        row.appendChild(name); row.appendChild(input);
+        fieldBuilder.appendChild(row);
+      }
+    }
+
+    function collectFieldValues() {
+      const data = {};
+      fieldBuilder.querySelectorAll('input').forEach(i=>{
+        const n=i.dataset.fieldName,t=i.dataset.fieldType;
+        let v=i.value;
+        if(i.type==='checkbox')v=i.checked;
+        else if(i.type==='number')v=t.includes('float')?parseFloat(v):parseInt(v||'0',10);
+        data[n]=v;
+      });
+      return data;
+    }
+
+    sendRequestBtn.addEventListener('click', async ()=>{
+      if(!currentMethod) return showStatus(requestStatus,'Select service & method','error');
+      const url = `${serverUrlInput.value}/${currentService.name}/${currentMethod.name}`;
+      const reqType=root.lookupType(currentMethod.requestType);
+      const resType=root.lookupType(currentMethod.responseType);
+      const msg=reqType.create(collectFieldValues());
+      const buf=reqType.encode(msg).finish();
+      if(currentMethod.responseStream) await streamRequest(url,buf,resType);
+      else await unaryRequest(url,buf,resType);
+    });
+
+    async function unaryRequest(url,body,resType){
+      showStatus(requestStatus,'Sending unary request...','info');
+      try{
+        const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/grpc-web+proto','X-Grpc-Web':'1'},body});
+        if(!r.ok)throw new Error(r.statusText);
+        const ab=await r.arrayBuffer();
+        const d=resType.decode(new Uint8Array(ab));
+        responseArea.textContent=JSON.stringify(resType.toObject(d,{longs:String,enums:String,bytes:String}),null,2);
+        showStatus(requestStatus,'✅ Response received','success');
+      }catch(e){
+        responseArea.textContent='Error: '+e.message;
+        showStatus(requestStatus,'Request failed','error');
+      }
+    }
+
+    async function streamRequest(url,body,resType){
+      isStreaming=true;streamAbortController=new AbortController();
+      sendRequestBtn.disabled=true;stopStreamBtn.classList.remove('hidden');
+      const to=setTimeout(()=>{if(isStreaming)streamAbortController.abort();},parseInt(streamTimeout.value)*1000);
+      try{
+        const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/grpc-web+proto','X-Grpc-Web':'1'},body,signal:streamAbortController.signal});
+        const reader=r.body.getReader();responseArea.textContent='';
+        while(isStreaming){
+          const {done,value}=await reader.read();if(done)break;
+          try{
+            const d=resType.decode(value);
+            responseArea.textContent+=JSON.stringify(resType.toObject(d,{longs:String,enums:String,bytes:String}),null,2)+'\n';
+          }catch(e){console.warn(e);}
+        }
+      }catch(e){responseArea.textContent+='Error: '+e.message;}
+      finally{clearTimeout(to);stopStreaming();}
+    }
+
+    stopStreamBtn.addEventListener('click',()=>{if(streamAbortController)streamAbortController.abort();stopStreaming();});
+    function stopStreaming(){isStreaming=false;sendRequestBtn.disabled=false;stopStreamBtn.classList.add('hidden');}
+    function showStatus(el,msg,t){el.textContent=msg;el.className=`status status-${t}`;}
+  </script>
+</body>
+</html
